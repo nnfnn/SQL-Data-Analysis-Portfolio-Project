@@ -1,33 +1,18 @@
-Retail Sales Analysis using SQL
-Project Overview
+/*==========================================================
+  Retail Sales Analysis Project
+  Author : Muhammed Nifan
+  Database : MySQL / PostgreSQL
+==========================================================*/
 
-Project Title: Retail Sales Analysis
-Tools Used: SQL, PostgreSQL / MySQL
-
-In this project, I used SQL to analyze retail sales data and generate meaningful business insights. My main goal was to strengthen my understanding of core SQL concepts such as database creation, data cleaning, exploratory data analysis (EDA), and solving real-world business problems using queries.
-
-The dataset I worked on includes retail transaction details such as customer demographics, product categories, sales quantity, and revenue. By analyzing this data, I was able to identify patterns in customer behavior and evaluate overall sales performance.
-
-Project Objectives
-
-Through this project, I focused on:
-
-Database Setup:
-I created a retail sales database and defined the table structure.
-Data Cleaning:
-I identified missing/null values and removed incomplete records to ensure data accuracy.
-Exploratory Data Analysis (EDA):
-I explored the dataset to understand customer distribution, product categories, and transaction trends.
-Business Analysis:
-I wrote SQL queries to answer business questions and extract actionable insights.
-Database Setup
-
-I started by creating the database and table:
+-- =========================================================
+-- DATABASE SETUP
+-- =========================================================
 
 CREATE DATABASE p1_retail_db;
 
-CREATE TABLE retail_sales
-(
+USE p1_retail_db;
+
+CREATE TABLE retail_sales (
     transactions_id INT PRIMARY KEY,
     sale_date DATE,
     sale_time TIME,
@@ -41,75 +26,211 @@ CREATE TABLE retail_sales
     total_sale FLOAT
 );
 
-This table stores detailed information about each transaction, including customer details, product category, and sales amount.
+-- =========================================================
+-- DATA EXPLORATION
+-- =========================================================
 
-Data Exploration and Cleaning
+-- Total number of records
+SELECT COUNT(*) AS total_sales_records
+FROM retail_sales;
 
-Before analysis, I explored and cleaned the dataset:
+-- Total number of unique customers
+SELECT COUNT(DISTINCT customer_id) AS total_customers
+FROM retail_sales;
 
-Checked total records:
-SELECT COUNT(*) FROM retail_sales;
-Counted unique customers:
-SELECT COUNT(DISTINCT customer_id) FROM retail_sales;
-Identified product categories:
-SELECT DISTINCT category FROM retail_sales;
-Checked for missing values:
+-- List all product categories
+SELECT DISTINCT category
+FROM retail_sales;
+
+-- =========================================================
+-- DATA CLEANING
+-- =========================================================
+
+-- Check for missing values
 SELECT *
 FROM retail_sales
-WHERE 
-    sale_date IS NULL OR sale_time IS NULL OR customer_id IS NULL OR
-    gender IS NULL OR age IS NULL OR category IS NULL OR
-    quantity IS NULL OR price_per_unit IS NULL OR cogs IS NULL;
-Removed incomplete records:
+WHERE sale_date IS NULL
+   OR sale_time IS NULL
+   OR customer_id IS NULL
+   OR gender IS NULL
+   OR age IS NULL
+   OR category IS NULL
+   OR quantity IS NULL
+   OR price_per_unit IS NULL
+   OR cogs IS NULL
+   OR total_sale IS NULL;
+
+-- Remove records with missing values
 DELETE FROM retail_sales
-WHERE 
-    sale_date IS NULL OR sale_time IS NULL OR customer_id IS NULL OR
-    gender IS NULL OR age IS NULL OR category IS NULL OR
-    quantity IS NULL OR price_per_unit IS NULL OR cogs IS NULL;
+WHERE sale_date IS NULL
+   OR sale_time IS NULL
+   OR customer_id IS NULL
+   OR gender IS NULL
+   OR age IS NULL
+   OR category IS NULL
+   OR quantity IS NULL
+   OR price_per_unit IS NULL
+   OR cogs IS NULL
+   OR total_sale IS NULL;
 
-This ensured that my analysis was based on clean and reliable data.
+-- =========================================================
+-- BUSINESS QUESTIONS AND ANALYSIS
+-- =========================================================
 
-Data Analysis & Business Questions
+-- 1. Retrieve all sales made on a specific date
+SELECT *
+FROM retail_sales
+WHERE sale_date = '2022-11-05';
 
-I used SQL queries to answer key business questions:
+-- 2. Retrieve all Clothing transactions with quantity >= 4
+-- during November 2022
 
-Retrieved sales for a specific date
-Analyzed clothing transactions in a specific month
-Calculated total sales per category
-Found average age of customers buying beauty products
-Identified high-value transactions (>1000)
-Compared transactions by gender across categories
-Determined best-performing months using ranking
-Identified top 5 customers by total spending
-Calculated unique customers per category
-Analyzed sales distribution by time of day
-Key Insights
+SELECT *
+FROM retail_sales
+WHERE category = 'Clothing'
+  AND quantity >= 4
+  AND MONTH(sale_date) = 11
+  AND YEAR(sale_date) = 2022;
 
-From my analysis, I discovered:
+-- 3. Calculate total sales for each category
 
-Sales are distributed across multiple categories like Clothing and Beauty
-Some transactions contribute significantly higher revenue (premium purchases)
-Monthly sales trends indicate possible seasonality
-Customer buying behavior varies across different times of the day
-A small group of customers contributes a large portion of total sales
-Project Summary
+SELECT
+    category,
+    SUM(total_sale) AS total_revenue,
+    COUNT(*) AS total_orders
+FROM retail_sales
+GROUP BY category
+ORDER BY total_revenue DESC;
 
-Through this project, I demonstrated my ability to:
+-- 4. Find average age of customers who purchased Beauty products
 
-Design and create databases using SQL
-Perform data cleaning and validation
-Conduct exploratory data analysis
-Solve business problems using SQL queries
+SELECT
+    ROUND(AVG(age),2) AS average_customer_age
+FROM retail_sales
+WHERE category = 'Beauty';
 
-This project shows how I can transform raw data into meaningful insights that support business decision-making.
+-- 5. Find transactions where total sales exceeded 1000
 
-How to Use This Project
-Clone the repository from GitHub
-Create the database using the SQL script
-Import the dataset into the retail_sales table
-Run the queries to generate insights
-Author
+SELECT *
+FROM retail_sales
+WHERE total_sale > 1000;
 
-Muhammed Nifan
+-- 6. Find total transactions by gender in each category
 
-This project is part of my Data Analyst portfolio, where I showcase my skills in SQL, data analysis, and deriving business insights from data.
+SELECT
+    category,
+    gender,
+    COUNT(*) AS total_transactions
+FROM retail_sales
+GROUP BY category, gender
+ORDER BY category, gender;
+
+-- 7. Determine the best performing month in each year
+
+SELECT *
+FROM (
+    SELECT
+        YEAR(sale_date) AS sales_year,
+        MONTH(sale_date) AS sales_month,
+        AVG(total_sale) AS average_sales,
+        RANK() OVER(
+            PARTITION BY YEAR(sale_date)
+            ORDER BY AVG(total_sale) DESC
+        ) AS ranking
+    FROM retail_sales
+    GROUP BY sales_year, sales_month
+) ranked_months
+WHERE ranking = 1;
+
+-- 8. Find the top 5 customers by total spending
+
+SELECT
+    customer_id,
+    SUM(total_sale) AS total_spending
+FROM retail_sales
+GROUP BY customer_id
+ORDER BY total_spending DESC
+LIMIT 5;
+
+-- 9. Find the number of unique customers in each category
+
+SELECT
+    category,
+    COUNT(DISTINCT customer_id) AS unique_customers
+FROM retail_sales
+GROUP BY category
+ORDER BY unique_customers DESC;
+
+-- 10. Analyze sales distribution by shift
+
+SELECT
+    sales_shift,
+    COUNT(*) AS total_orders
+FROM (
+    SELECT *,
+        CASE
+            WHEN HOUR(sale_time) < 12 THEN 'Morning'
+            WHEN HOUR(sale_time) BETWEEN 12 AND 17 THEN 'Afternoon'
+            ELSE 'Evening'
+        END AS sales_shift
+    FROM retail_sales
+) shift_data
+GROUP BY sales_shift
+ORDER BY total_orders DESC;
+
+-- =========================================================
+-- ADDITIONAL INSIGHTS
+-- =========================================================
+
+-- Top selling category
+
+SELECT
+    category,
+    SUM(total_sale) AS total_revenue
+FROM retail_sales
+GROUP BY category
+ORDER BY total_revenue DESC;
+
+-- Average order value
+
+SELECT
+    ROUND(AVG(total_sale),2) AS average_order_value
+FROM retail_sales;
+
+-- Revenue generated by gender
+
+SELECT
+    gender,
+    SUM(total_sale) AS total_revenue
+FROM retail_sales
+GROUP BY gender
+ORDER BY total_revenue DESC;
+
+-- Monthly sales trend
+
+SELECT
+    YEAR(sale_date) AS year,
+    MONTH(sale_date) AS month,
+    SUM(total_sale) AS monthly_revenue
+FROM retail_sales
+GROUP BY year, month
+ORDER BY year, month;
+
+-- Customer with highest spending
+
+SELECT
+    customer_id,
+    SUM(total_sale) AS total_spending
+FROM retail_sales
+GROUP BY customer_id
+ORDER BY total_spending DESC
+LIMIT 1;
+
+-- Peak shopping hours
+
+SELECT
+    HOUR(sale_time) AS purchase_hour,
+    COUNT(*) AS total_transactions
+FROM retail_sales
+GROUP BY purchase_hour
+ORDER BY total_transactions DESC;
