@@ -1,16 +1,11 @@
-/*==========================================================
-  Retail Sales Analysis Project
-  Author : Muhammed Nifan
-  Database : MySQL / PostgreSQL
-==========================================================*/
-
--- =========================================================
--- DATABASE SETUP
--- =========================================================
+-- Retail Sales Analysis
+-- Author: Muhammed Nifan
 
 CREATE DATABASE p1_retail_db;
 
 USE p1_retail_db;
+
+-- Create the retail sales table
 
 CREATE TABLE retail_sales (
     transactions_id INT PRIMARY KEY,
@@ -26,27 +21,25 @@ CREATE TABLE retail_sales (
     total_sale FLOAT
 );
 
--- =========================================================
--- DATA EXPLORATION
--- =========================================================
 
--- Total number of records
-SELECT COUNT(*) AS total_sales_records
+-- Let's first understand the dataset
+
+-- Check how many records are available
+SELECT COUNT(*) AS total_records
 FROM retail_sales;
 
--- Total number of unique customers
+-- Find the total number of customers
 SELECT COUNT(DISTINCT customer_id) AS total_customers
 FROM retail_sales;
 
--- List all product categories
+-- Check the different product categories
 SELECT DISTINCT category
 FROM retail_sales;
 
--- =========================================================
--- DATA CLEANING
--- =========================================================
 
--- Check for missing values
+-- Data cleaning
+
+-- Check whether the dataset contains any missing values
 SELECT *
 FROM retail_sales
 WHERE sale_date IS NULL
@@ -60,7 +53,7 @@ WHERE sale_date IS NULL
    OR cogs IS NULL
    OR total_sale IS NULL;
 
--- Remove records with missing values
+-- Remove rows that contain missing values
 DELETE FROM retail_sales
 WHERE sale_date IS NULL
    OR sale_time IS NULL
@@ -73,16 +66,18 @@ WHERE sale_date IS NULL
    OR cogs IS NULL
    OR total_sale IS NULL;
 
--- =========================================================
--- BUSINESS QUESTIONS AND ANALYSIS
--- =========================================================
 
--- 1. Retrieve all sales made on a specific date
+-- Sales analysis
+
+
+-- 1. Get all transactions made on November 5, 2022
+
 SELECT *
 FROM retail_sales
 WHERE sale_date = '2022-11-05';
 
--- 2. Retrieve all Clothing transactions with quantity >= 4
+
+-- 2. Find clothing sales where customers purchased at least 4 items
 -- during November 2022
 
 SELECT *
@@ -92,7 +87,8 @@ WHERE category = 'Clothing'
   AND MONTH(sale_date) = 11
   AND YEAR(sale_date) = 2022;
 
--- 3. Calculate total sales for each category
+
+-- 3. Calculate total revenue and number of orders for each category
 
 SELECT
     category,
@@ -102,20 +98,23 @@ FROM retail_sales
 GROUP BY category
 ORDER BY total_revenue DESC;
 
--- 4. Find average age of customers who purchased Beauty products
+
+-- 4. Find the average age of customers purchasing beauty products
 
 SELECT
-    ROUND(AVG(age),2) AS average_customer_age
+    ROUND(AVG(age), 2) AS average_customer_age
 FROM retail_sales
 WHERE category = 'Beauty';
 
--- 5. Find transactions where total sales exceeded 1000
+
+-- 5. Find transactions where the total purchase amount is above 1000
 
 SELECT *
 FROM retail_sales
 WHERE total_sale > 1000;
 
--- 6. Find total transactions by gender in each category
+
+-- 6. Compare the number of transactions by gender across categories
 
 SELECT
     category,
@@ -125,7 +124,8 @@ FROM retail_sales
 GROUP BY category, gender
 ORDER BY category, gender;
 
--- 7. Determine the best performing month in each year
+
+-- 7. Find the month with the highest average sales in each year
 
 SELECT *
 FROM (
@@ -133,16 +133,17 @@ FROM (
         YEAR(sale_date) AS sales_year,
         MONTH(sale_date) AS sales_month,
         AVG(total_sale) AS average_sales,
-        RANK() OVER(
+        RANK() OVER (
             PARTITION BY YEAR(sale_date)
             ORDER BY AVG(total_sale) DESC
-        ) AS ranking
+        ) AS sales_rank
     FROM retail_sales
     GROUP BY sales_year, sales_month
-) ranked_months
-WHERE ranking = 1;
+) monthly_sales
+WHERE sales_rank = 1;
 
--- 8. Find the top 5 customers by total spending
+
+-- 8. Identify the top 5 customers based on total spending
 
 SELECT
     customer_id,
@@ -152,7 +153,8 @@ GROUP BY customer_id
 ORDER BY total_spending DESC
 LIMIT 5;
 
--- 9. Find the number of unique customers in each category
+
+-- 9. Find how many unique customers purchased from each category
 
 SELECT
     category,
@@ -161,28 +163,29 @@ FROM retail_sales
 GROUP BY category
 ORDER BY unique_customers DESC;
 
--- 10. Analyze sales distribution by shift
+
+-- 10. Understand customer shopping patterns based on purchase time
 
 SELECT
     sales_shift,
     COUNT(*) AS total_orders
 FROM (
-    SELECT *,
+    SELECT
         CASE
             WHEN HOUR(sale_time) < 12 THEN 'Morning'
             WHEN HOUR(sale_time) BETWEEN 12 AND 17 THEN 'Afternoon'
             ELSE 'Evening'
         END AS sales_shift
     FROM retail_sales
-) shift_data
+) AS shift_data
 GROUP BY sales_shift
 ORDER BY total_orders DESC;
 
--- =========================================================
--- ADDITIONAL INSIGHTS
--- =========================================================
 
--- Top selling category
+-- Some additional business insights
+
+
+-- Find the category generating the highest revenue
 
 SELECT
     category,
@@ -191,13 +194,15 @@ FROM retail_sales
 GROUP BY category
 ORDER BY total_revenue DESC;
 
--- Average order value
+
+-- Calculate the average order value
 
 SELECT
-    ROUND(AVG(total_sale),2) AS average_order_value
+    ROUND(AVG(total_sale), 2) AS average_order_value
 FROM retail_sales;
 
--- Revenue generated by gender
+
+-- Compare total revenue generated by male and female customers
 
 SELECT
     gender,
@@ -206,17 +211,19 @@ FROM retail_sales
 GROUP BY gender
 ORDER BY total_revenue DESC;
 
--- Monthly sales trend
+
+-- Check how sales change from month to month
 
 SELECT
-    YEAR(sale_date) AS year,
-    MONTH(sale_date) AS month,
+    YEAR(sale_date) AS sales_year,
+    MONTH(sale_date) AS sales_month,
     SUM(total_sale) AS monthly_revenue
 FROM retail_sales
-GROUP BY year, month
-ORDER BY year, month;
+GROUP BY sales_year, sales_month
+ORDER BY sales_year, sales_month;
 
--- Customer with highest spending
+
+-- Find the customer who spent the most
 
 SELECT
     customer_id,
@@ -226,7 +233,8 @@ GROUP BY customer_id
 ORDER BY total_spending DESC
 LIMIT 1;
 
--- Peak shopping hours
+
+-- Identify the busiest shopping hours
 
 SELECT
     HOUR(sale_time) AS purchase_hour,
